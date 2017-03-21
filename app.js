@@ -15,20 +15,15 @@ let router = (url, method) => {
         POST: {
             "/prime_number": (req, res) => {
                 let body = [];
-                req.on("data", data => {
-                    body.push(data);
-                });
-                req.on("end", () => {
-                    let totalBuffer = Buffer.concat(body);
-                    let interval = JSON.parse(totalBuffer.toString());
-                    let worker = fork('./prime.js');
-                    worker.on('exit', () => {
-                        console.log('Worker killed!!!!!');
-                    });
-                    worker.on('message', result => {
-                        res.end(JSON.stringify(result));
-                    });
-                    worker.send({ min: parseInt(interval[0]), max: parseInt(interval[1]) });
+                getRequestBody(req).then((interval)=>{
+                  let worker = fork('./prime.js');
+                  worker.on('exit', () => {
+                      console.log('Worker killed!!!!!');
+                  });
+                  worker.on('message', result => {
+                      res.end(JSON.stringify(result));
+                  });
+                  worker.send({ min: parseInt(interval[0]), max: parseInt(interval[1]) });
                 });
             }
         },
@@ -52,3 +47,16 @@ let router = (url, method) => {
 server.listen(3000, () => {
     console.log("Started");
 });
+
+function getRequestBody(request){
+  return new Promise((resolve,reject)=>{
+    let body = [];
+    request.on("data", data => {
+        body.push(data);
+    });
+    request.on("end", () => {
+        let totalBuffer = Buffer.concat(body);
+        resolve(JSON.parse(totalBuffer.toString()));
+    });
+  });
+}
